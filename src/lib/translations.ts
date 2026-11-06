@@ -193,3 +193,228 @@ export const translations = {
     footerText: 'AzTU Kamikaze USV Engineering Team • All rights reserved.',
   }
 };
+
+export const adminTranslations = {
+  az: {
+    portalTitle: 'AzTU İDA • QƏBUL İDARƏETMƏSİ',
+    portalSub: 'Süni İntellekt Dəyərləndirmə Mərkəzi',
+    loginTitle: 'Kamikaze İDA Rəhbərlik Paneli',
+    loginSub: 'Bu panel yalnız komanda rəhbərliyi üçün qapalıdır.',
+    passwordLabel: 'GİRİŞ ŞİFRƏSİ',
+    passwordPlaceholder: 'Şifrəni daxil edin...',
+    loginBtn: 'Panelə Daxil Ol',
+    loggingIn: 'Yoxlanılır...',
+    backToHome: '← Əsas Başvuru Səhifəsinə Qayıt',
+    invalidPassword: 'Yanlış şifrə!',
+    exportCsv: 'Excel/CSV İxrac',
+    refresh: 'Yenilə',
+    logout: 'Çıxış',
+    
+    // Stats
+    totalApplications: 'Ümumi Müraciət',
+    avgScore: 'Orta AI Balı',
+    eemCount: 'EEM / Elektronika',
+    mechCompCount: 'Mexanika / Kompüter',
+
+    // Filters
+    searchPlaceholder: 'Ad, qrup nömrəsi və ya telefon ilə axtar...',
+    allDepartments: 'Bütün Bölümlər',
+    deptEem: 'EEM',
+    deptMakine: 'Mexanika',
+    deptBilgisayar: 'Kompüter & Yazılım',
+    deptDiger: 'Digər',
+    allScores: 'Bütün Ballar',
+    score85: '85+ (Əla Namizədlər)',
+    score70: '70 - 84 (Yaxşı)',
+    scoreUnder70: '70-dən aşağı',
+    sortByScore: 'Bal üzrə',
+    sortByDate: 'Tarix üzrə',
+    noCandidates: 'Heç bir namizəd tapılmadı.',
+
+    // Table
+    thCandidate: 'Namizəd & Qrup',
+    thDept: 'Bölüm',
+    thScore: 'AI Balı',
+    thTeam: 'Tövsiyə Olunan Ekip',
+    thRisk: 'Kopya Riski',
+    thContact: 'Əlaqə',
+    thActions: 'Əməliyyatlar',
+    groupLabel: 'Qrup',
+    langLabel: 'Dil',
+
+    // Risk Badges
+    riskHigh: 'Yüksək AI',
+    riskMedium: 'Şübhəli',
+    riskLow: 'Səmimi / Təbii',
+
+    // Actions
+    btnView: 'Bax',
+    btnDelete: 'Sil',
+    confirmDelete: 'adlı namizədi silmək istədiyinizdən əminsiniz?',
+    deleteError: 'Silmə zamanı xəta baş verdi.',
+
+    // Modal
+    modalAiReport: 'Süni İntellekt Dəyərləndirmə Hesabatı',
+    modalScore: 'Bal',
+    modalSummary: 'Xülasə:',
+    modalRecommendedTeam: 'Tövsiyə Olunan Alt Ekip:',
+    modalAiRisk: 'Kopya / AI Riski:',
+    modalResponsesTitle: 'Adayın Verdiyi Cavablar',
+    modalQ1: '1. Kriz & Fail-Safe Protokolu',
+    modalQ2: '2. Öyrənmə İştahı & Təşəbbüskarlıq',
+    modalQ3: '3. Komanda İşi & Böhran',
+    modalQ4: '4. Vaxt Ayırma & Atelye Motivasiyası',
+    modalQ5: '5. Əlavə Bacarıqlar',
+    modalNotSpecified: 'Qeyd edilməyib',
+    modalWhatsapp: 'WhatsApp ilə Yaz',
+    modalClose: 'Bağla'
+  },
+  tr: {
+    portalTitle: 'AzTU İDA • YÖNETİM PANELİ',
+    portalSub: 'Yapay Zeka Aday Değerlendirme Merkezi',
+    loginTitle: 'Kamikaze İDA Yönetim Paneli',
+    loginSub: 'Bu panel sadece takım yöneticileri ve jüri erişimine açıktır.',
+    passwordLabel: 'GİRİŞ ŞİFRESİ',
+    passwordPlaceholder: 'Şifrenizi girin...',
+    loginBtn: 'Panele Giriş Yap',
+    loggingIn: 'Doğrulanıyor...',
+    backToHome: '← Ana Başvuru Sayfasına Dön',
+    invalidPassword: 'Hatalı şifre!',
+    exportCsv: 'Excel/CSV İndir',
+    refresh: 'Yenile',
+    logout: 'Çıkış Yap',
+    
+    // Stats
+    totalApplications: 'Toplam Başvuru',
+    avgScore: 'Ortalama AI Puanı',
+    eemCount: 'EEM / Elektronik',
+    mechCompCount: 'Makine / Bilgisayar',
+
+    // Filters
+    searchPlaceholder: 'İsim, grup numarası veya telefon ile ara...',
+    allDepartments: 'Tüm Bölümler',
+    deptEem: 'EEM',
+    deptMakine: 'Makine',
+    deptBilgisayar: 'Bilgisayar & Yazılım',
+    deptDiger: 'Diğer',
+    allScores: 'Tüm Puanlar',
+    score85: '85+ (Üstün Adaylar)',
+    score70: '70 - 84 (İyi)',
+    scoreUnder70: '70 Altı',
+    sortByScore: 'Puana Göre',
+    sortByDate: 'Tarihe Göre',
+    noCandidates: 'Hiçbir aday bulunamadı.',
+
+    // Table
+    thCandidate: 'Aday & Grup',
+    thDept: 'Bölüm',
+    thScore: 'AI Puanı',
+    thTeam: 'Önerilen Alt Ekip',
+    thRisk: 'Kopya Riski',
+    thContact: 'İletişim',
+    thActions: 'İşlemler',
+    groupLabel: 'Grup',
+    langLabel: 'Dil',
+
+    // Risk Badges
+    riskHigh: 'Yüksek AI',
+    riskMedium: 'Şüpheli',
+    riskLow: 'Samimi / Doğal',
+
+    // Actions
+    btnView: 'İncele',
+    btnDelete: 'Sil',
+    confirmDelete: 'adlı adayı silmek istediğinizden emin misiniz?',
+    deleteError: 'Silme işlemi sırasında hata oluştu.',
+
+    // Modal
+    modalAiReport: 'Yapay Zeka Değerlendirme Raporu',
+    modalScore: 'Puan',
+    modalSummary: 'Özet:',
+    modalRecommendedTeam: 'Önerilen Alt Ekip:',
+    modalAiRisk: 'Kopya / AI Şüphesi:',
+    modalResponsesTitle: 'Adayın Verdiği Yanıtlar',
+    modalQ1: '1. Kriz & Fail-Safe Protokolü',
+    modalQ2: '2. Öğrenme Merakı & İnisiyatif',
+    modalQ3: '3. Takım Çalışması & Kriz Yönetimi',
+    modalQ4: '4. Zaman Taahhüdü & Atölye Motivasyonu',
+    modalQ5: '5. Ek Beceriler',
+    modalNotSpecified: 'Belirtilmedi',
+    modalWhatsapp: 'WhatsApp ile Yaz',
+    modalClose: 'Kapat'
+  },
+  en: {
+    portalTitle: 'AzTU USV • RECRUITMENT ADMIN',
+    portalSub: 'Artificial Intelligence Evaluation Center',
+    loginTitle: 'Kamikaze USV Management Portal',
+    loginSub: 'This dashboard is restricted to team leaders and evaluators only.',
+    passwordLabel: 'ACCESS PASSWORD',
+    passwordPlaceholder: 'Enter access password...',
+    loginBtn: 'Log In to Dashboard',
+    loggingIn: 'Verifying...',
+    backToHome: '← Back to Application Form',
+    invalidPassword: 'Incorrect password!',
+    exportCsv: 'Export Excel/CSV',
+    refresh: 'Refresh',
+    logout: 'Log Out',
+    
+    // Stats
+    totalApplications: 'Total Applications',
+    avgScore: 'Average AI Score',
+    eemCount: 'EE / Electronics',
+    mechCompCount: 'Mechanical / Software',
+
+    // Filters
+    searchPlaceholder: 'Search by name, group or phone...',
+    allDepartments: 'All Departments',
+    deptEem: 'EE',
+    deptMakine: 'Mechanical',
+    deptBilgisayar: 'Computer & Software',
+    deptDiger: 'Other',
+    allScores: 'All Scores',
+    score85: '85+ (Top Tier)',
+    score70: '70 - 84 (Good)',
+    scoreUnder70: 'Under 70',
+    sortByScore: 'By Score',
+    sortByDate: 'By Date',
+    noCandidates: 'No candidates found.',
+
+    // Table
+    thCandidate: 'Candidate & Group',
+    thDept: 'Department',
+    thScore: 'AI Score',
+    thTeam: 'Recommended Team',
+    thRisk: 'AI Risk',
+    thContact: 'Contact',
+    thActions: 'Actions',
+    groupLabel: 'Group',
+    langLabel: 'Lang',
+
+    // Risk Badges
+    riskHigh: 'High AI',
+    riskMedium: 'Suspect',
+    riskLow: 'Authentic / Low',
+
+    // Actions
+    btnView: 'View',
+    btnDelete: 'Delete',
+    confirmDelete: 'Are you sure you want to delete candidate',
+    deleteError: 'Error occurred during deletion.',
+
+    // Modal
+    modalAiReport: 'AI Candidate Evaluation Report',
+    modalScore: 'Score',
+    modalSummary: 'Executive Summary:',
+    modalRecommendedTeam: 'Recommended Sub-Team:',
+    modalAiRisk: 'Copy / AI Likelihood:',
+    modalResponsesTitle: 'Candidate Responses',
+    modalQ1: '1. Crisis & Fail-Safe Protocol',
+    modalQ2: '2. Curiosity & Self-Initiated Learning',
+    modalQ3: '3. Teamwork & Crisis Management',
+    modalQ4: '4. Time Commitment & Workshop Drive',
+    modalQ5: '5. Special Skills & Experience',
+    modalNotSpecified: 'Not specified',
+    modalWhatsapp: 'Open WhatsApp',
+    modalClose: 'Close'
+  }
+};

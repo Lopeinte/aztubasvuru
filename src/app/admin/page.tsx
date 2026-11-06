@@ -2,18 +2,17 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { CandidateSubmission, Department, Language } from '@/types';
+import { CandidateSubmission, Language } from '@/types';
+import { adminTranslations } from '@/lib/translations';
 import {
   Compass,
   Lock,
   Download,
   Trash2,
   Search,
-  Filter,
   CheckCircle2,
   AlertTriangle,
   X,
-  Phone,
   MessageCircle,
   BrainCircuit,
   LogOut,
@@ -22,11 +21,14 @@ import {
   Users,
   Eye,
   ArrowUpDown,
-  RefreshCw
+  RefreshCw,
+  Globe
 } from 'lucide-react';
 
 export default function AdminPage() {
+  const [lang, setLang] = useState<Language>('az');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [passwordInput, setPasswordInput] = useState('');
   const [loginError, setLoginError] = useState('');
   const [loggingIn, setLoggingIn] = useState(false);
@@ -43,9 +45,30 @@ export default function AdminPage() {
   // Selected Candidate for Detail Modal
   const [selectedCandidate, setSelectedCandidate] = useState<CandidateSubmission | null>(null);
 
-  // Check login on load
+  const t = adminTranslations[lang] || adminTranslations.az;
+
+  // Change Language
+  const changeLanguage = (newLang: Language) => {
+    setLang(newLang);
+    localStorage.setItem('aztu_admin_lang', newLang);
+  };
+
+  // Check login on mount
   useEffect(() => {
-    fetchCandidates();
+    // 1. Language preference
+    const savedLang = localStorage.getItem('aztu_admin_lang') as Language;
+    if (savedLang && ['az', 'tr', 'en'].includes(savedLang)) {
+      setLang(savedLang);
+    }
+
+    // 2. Session verification (Strict - never auto-authenticate without saved token)
+    const token = sessionStorage.getItem('aztu_admin_token');
+    if (token) {
+      fetchCandidates(token);
+    } else {
+      setIsCheckingAuth(false);
+      setIsAuthenticated(false);
+    }
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -62,45 +85,74 @@ export default function AdminPage() {
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Hatalı şifre!');
+        throw new Error(data.error || t.invalidPassword);
       }
 
+      const validToken = data.token || 'aztu_admin_authenticated_2026';
+      sessionStorage.setItem('aztu_admin_token', validToken);
       setIsAuthenticated(true);
-      fetchCandidates();
+      setPasswordInput('');
+      fetchCandidates(validToken);
     } catch (err: any) {
-      setLoginError(err.message || 'Giriş başarısız oldu.');
+      setLoginError(err.message || t.invalidPassword);
     } finally {
       setLoggingIn(false);
     }
   };
 
-  const fetchCandidates = async () => {
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/admin/login', { method: 'DELETE' });
+    } catch (e) {
+      console.warn('Logout API error:', e);
+    }
+    sessionStorage.removeItem('aztu_admin_token');
+    setIsAuthenticated(false);
+    setCandidates([]);
+    setSelectedCandidate(null);
+    setPasswordInput('');
+  };
+
+  const fetchCandidates = async (explicitToken?: string) => {
+    const token = explicitToken || sessionStorage.getItem('aztu_admin_token');
+    if (!token) {
+      setIsAuthenticated(false);
+      setIsCheckingAuth(false);
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await fetch('/api/admin/candidates', {
-        headers: { 'Authorization': 'Bearer aztu_admin_authenticated_2026' }
+        headers: { Authorization: `Bearer ${token}` }
       });
+
       if (res.ok) {
         const data = await res.json();
         setCandidates(data.candidates || []);
         setIsAuthenticated(true);
+      } else if (res.status === 401) {
+        sessionStorage.removeItem('aztu_admin_token');
+        setIsAuthenticated(false);
       }
     } catch (err) {
-      console.error(err);
+      console.error('Fetch candidates error:', err);
     } finally {
       setLoading(false);
+      setIsCheckingAuth(false);
     }
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`"${name}" adlı namizədi silmək istədiyinizdən əminsiniz?`)) return;
+    if (!confirm(`"${name}" ${t.confirmDelete}`)) return;
 
+    const token = sessionStorage.getItem('aztu_admin_token');
     try {
       const res = await fetch('/api/admin/candidates', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer aztu_admin_authenticated_2026'
+          Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({ id })
       });
@@ -108,9 +160,11 @@ export default function AdminPage() {
       if (res.ok) {
         setCandidates(prev => prev.filter(c => c.id !== id));
         if (selectedCandidate?.id === id) setSelectedCandidate(null);
+      } else {
+        alert(t.deleteError);
       }
     } catch (err) {
-      alert('Silmə zamanı xəta baş verdi.');
+      alert(t.deleteError);
     }
   };
 
@@ -146,28 +200,65 @@ export default function AdminPage() {
   const makineCount = candidates.filter(c => c.department === 'makine').length;
   const compCount = candidates.filter(c => c.department === 'bilgisayar').length;
 
+  // Language switch component
+  const LanguageToggle = () => (
+    <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg p-0.5 text-xs font-semibold">
+      {(['az', 'tr', 'en'] as Language[]).map((l) => (
+        <button
+          key={l}
+          type="button"
+          onClick={() => changeLanguage(l)}
+          className={`px-2.5 py-1 rounded transition-colors ${
+            lang === l
+              ? 'bg-emerald-600 text-white shadow-sm'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          {l.toUpperCase()}
+        </button>
+      ))}
+    </div>
+  );
+
+  // If checking authentication on load
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen bg-[#090d16] flex items-center justify-center">
+        <RefreshCw className="w-6 h-6 animate-spin text-emerald-400" />
+      </div>
+    );
+  }
+
+  // LOGIN SCREEN (Strictly locked until password is typed)
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-[#090d16] flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-[#0f172a] border border-slate-800 rounded-2xl p-8 shadow-2xl">
+      <div className="min-h-screen bg-[#090d16] flex flex-col items-center justify-center p-4">
+        {/* Language switch top-right */}
+        <div className="absolute top-6 right-6">
+          <LanguageToggle />
+        </div>
+
+        <div className="w-full max-w-md bg-[#0f172a] border border-slate-800 rounded-2xl p-8 shadow-2xl relative">
           <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto mb-5">
             <Lock className="w-6 h-6" />
           </div>
-          <h1 className="text-xl font-bold text-center text-white mb-2">Kamikaze İDA Rəhbərlik Paneli</h1>
+
+          <h1 className="text-xl font-bold text-center text-white mb-2">{t.loginTitle}</h1>
           <p className="text-xs text-center text-slate-400 mb-6">
-            Bu panel yalnız komanda rəhbərliyi üçün qapalıdır.
+            {t.loginSub}
           </p>
 
           {loginError && (
-            <div className="mb-4 p-3 rounded-lg bg-red-950/40 border border-red-500/40 text-red-200 text-xs">
-              {loginError}
+            <div className="mb-4 p-3 rounded-lg bg-red-950/40 border border-red-500/40 text-red-200 text-xs flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0" />
+              <span>{loginError}</span>
             </div>
           )}
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">
-                Giriş Şifrəsi
+                {t.passwordLabel}
               </label>
               <input
                 type="password"
@@ -175,7 +266,7 @@ export default function AdminPage() {
                 autoFocus
                 value={passwordInput}
                 onChange={(e) => setPasswordInput(e.target.value)}
-                placeholder="Şifrəni daxil edin..."
+                placeholder={t.passwordPlaceholder}
                 className="w-full bg-[#090d16] border border-slate-700 rounded-lg px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:border-emerald-500 transition-colors"
               />
             </div>
@@ -185,13 +276,13 @@ export default function AdminPage() {
               disabled={loggingIn}
               className="w-full py-2.5 rounded-lg text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-500 transition-colors disabled:opacity-50"
             >
-              {loggingIn ? 'Yoxlanılır...' : 'Panelə Daxil Ol'}
+              {loggingIn ? t.loggingIn : t.loginBtn}
             </button>
           </form>
 
           <div className="mt-6 text-center">
             <Link href="/" className="text-xs text-slate-500 hover:text-slate-300 transition-colors">
-              ← Əsas Başvuru Səhifəsinə Qayıt
+              {t.backToHome}
             </Link>
           </div>
         </div>
@@ -199,6 +290,7 @@ export default function AdminPage() {
     );
   }
 
+  // ADMIN DASHBOARD
   return (
     <div className="min-h-screen bg-[#090d16] text-slate-100 flex flex-col">
       {/* Top Header */}
@@ -209,35 +301,42 @@ export default function AdminPage() {
               <Compass className="w-5 h-5" />
             </div>
             <div>
-              <div className="text-sm font-bold text-white tracking-wide">AzTU İDA • QƏBUL İDARƏETMƏSİ</div>
-              <div className="text-xs text-emerald-400 font-mono">Süni İntellekt Dəyərləndirmə Mərkəzi</div>
+              <div className="text-sm font-bold text-white tracking-wide">{t.portalTitle}</div>
+              <div className="text-xs text-emerald-400 font-mono">{t.portalSub}</div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Language Switcher */}
+            <LanguageToggle />
+
+            {/* CSV Export */}
             <a
               href="/api/admin/candidates?format=csv"
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition-colors"
-              title="Bütün məlumatları Excel/CSV kimi yüklə"
+              title={t.exportCsv}
             >
               <Download className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Excel/CSV İxrac</span>
+              <span className="hidden sm:inline">{t.exportCsv}</span>
             </a>
 
+            {/* Refresh */}
             <button
-              onClick={fetchCandidates}
+              onClick={() => fetchCandidates()}
               className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white transition-colors"
-              title="Yenilə"
+              title={t.refresh}
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-emerald-400' : ''}`} />
             </button>
 
+            {/* Logout */}
             <button
-              onClick={() => setIsAuthenticated(false)}
-              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-900 border border-slate-800 text-slate-400 hover:text-red-400 transition-colors ml-2"
+              onClick={handleLogout}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-900 border border-slate-800 text-slate-400 hover:text-red-400 transition-colors"
+              title={t.logout}
             >
               <LogOut className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Çıxış</span>
+              <span className="hidden sm:inline">{t.logout}</span>
             </button>
           </div>
         </div>
@@ -249,7 +348,7 @@ export default function AdminPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="bg-[#0f172a] border border-slate-800 rounded-xl p-4">
             <div className="text-xs font-medium text-slate-400 mb-1 flex items-center justify-between">
-              <span>Ümumi Müraciət</span>
+              <span>{t.totalApplications}</span>
               <Users className="w-4 h-4 text-emerald-400" />
             </div>
             <div className="text-2xl font-bold text-white font-mono">{totalCount}</div>
@@ -257,7 +356,7 @@ export default function AdminPage() {
 
           <div className="bg-[#0f172a] border border-slate-800 rounded-xl p-4">
             <div className="text-xs font-medium text-slate-400 mb-1 flex items-center justify-between">
-              <span>Orta AI Balı</span>
+              <span>{t.avgScore}</span>
               <Award className="w-4 h-4 text-amber-400" />
             </div>
             <div className="text-2xl font-bold text-amber-300 font-mono">{avgScore} / 100</div>
@@ -265,7 +364,7 @@ export default function AdminPage() {
 
           <div className="bg-[#0f172a] border border-slate-800 rounded-xl p-4">
             <div className="text-xs font-medium text-slate-400 mb-1 flex items-center justify-between">
-              <span>EEM / Elektronika</span>
+              <span>{t.eemCount}</span>
               <Layers className="w-4 h-4 text-blue-400" />
             </div>
             <div className="text-2xl font-bold text-blue-300 font-mono">{eemCount}</div>
@@ -273,7 +372,7 @@ export default function AdminPage() {
 
           <div className="bg-[#0f172a] border border-slate-800 rounded-xl p-4">
             <div className="text-xs font-medium text-slate-400 mb-1 flex items-center justify-between">
-              <span>Mexanika / Kompüter</span>
+              <span>{t.mechCompCount}</span>
               <Layers className="w-4 h-4 text-purple-400" />
             </div>
             <div className="text-2xl font-bold text-purple-300 font-mono">
@@ -291,7 +390,7 @@ export default function AdminPage() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Ad, qrup nömrəsi və ya telefon ilə axtar..."
+              placeholder={t.searchPlaceholder}
               className="w-full bg-[#090d16] border border-slate-800 rounded-lg pl-9 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:border-emerald-500 transition-colors"
             />
           </div>
@@ -303,11 +402,11 @@ export default function AdminPage() {
               onChange={(e) => setDeptFilter(e.target.value)}
               className="bg-[#090d16] border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:border-emerald-500"
             >
-              <option value="all">Bütün Bölümlər</option>
-              <option value="eem">EEM</option>
-              <option value="makine">Mexanika</option>
-              <option value="bilgisayar">Kompüter & Yazılım</option>
-              <option value="diger">Digər</option>
+              <option value="all">{t.allDepartments}</option>
+              <option value="eem">{t.deptEem}</option>
+              <option value="makine">{t.deptMakine}</option>
+              <option value="bilgisayar">{t.deptBilgisayar}</option>
+              <option value="diger">{t.deptDiger}</option>
             </select>
 
             {/* Score Filter */}
@@ -316,10 +415,10 @@ export default function AdminPage() {
               onChange={(e) => setScoreFilter(e.target.value)}
               className="bg-[#090d16] border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:border-emerald-500"
             >
-              <option value="all">Bütün Ballar</option>
-              <option value="85plus">85+ (Əla Namizədlər)</option>
-              <option value="70to84">70 - 84 (Yaxşı)</option>
-              <option value="under70">70-dən aşağı</option>
+              <option value="all">{t.allScores}</option>
+              <option value="85plus">{t.score85}</option>
+              <option value="70to84">{t.score70}</option>
+              <option value="under70">{t.scoreUnder70}</option>
             </select>
 
             {/* Sort Toggle */}
@@ -328,7 +427,7 @@ export default function AdminPage() {
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#090d16] border border-slate-800 text-xs text-slate-300 hover:text-white"
             >
               <ArrowUpDown className="w-3.5 h-3.5 text-emerald-400" />
-              <span>{sortBy === 'score' ? 'Bal üzrə' : 'Tarix üzrə'}</span>
+              <span>{sortBy === 'score' ? t.sortByScore : t.sortByDate}</span>
             </button>
           </div>
         </div>
@@ -337,20 +436,20 @@ export default function AdminPage() {
         <div className="bg-[#0f172a] border border-slate-800 rounded-xl overflow-hidden">
           {filteredCandidates.length === 0 ? (
             <div className="p-12 text-center text-slate-500 text-sm">
-              Heç bir namizəd tapılmadı.
+              {t.noCandidates}
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
                   <tr className="border-b border-slate-800 bg-[#090d16]/60 text-slate-400 uppercase tracking-wider font-semibold">
-                    <th className="py-3 px-4">Namizəd & Qrup</th>
-                    <th className="py-3 px-4">Bölüm</th>
-                    <th className="py-3 px-4">AI Balı</th>
-                    <th className="py-3 px-4">Tövsiyə Olunan Ekip</th>
-                    <th className="py-3 px-4">Kopya Riski</th>
-                    <th className="py-3 px-4">Əlaqə</th>
-                    <th className="py-3 px-4 text-right">Əməliyyatlar</th>
+                    <th className="py-3 px-4">{t.thCandidate}</th>
+                    <th className="py-3 px-4">{t.thDept}</th>
+                    <th className="py-3 px-4">{t.thScore}</th>
+                    <th className="py-3 px-4">{t.thTeam}</th>
+                    <th className="py-3 px-4">{t.thRisk}</th>
+                    <th className="py-3 px-4">{t.thContact}</th>
+                    <th className="py-3 px-4 text-right">{t.thActions}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800">
@@ -367,6 +466,11 @@ export default function AdminPage() {
                       aiRisk === 'medium' ? 'text-amber-400 bg-amber-950/50 border-amber-500/30' :
                       'text-emerald-400 bg-emerald-950/50 border-emerald-500/30';
 
+                    const riskText =
+                      aiRisk === 'high' ? t.riskHigh :
+                      aiRisk === 'medium' ? t.riskMedium :
+                      t.riskLow;
+
                     const cleanPhone = c.phone.replace(/[^0-9]/g, '');
 
                     return (
@@ -375,7 +479,7 @@ export default function AdminPage() {
                         <td className="py-3 px-4">
                           <div className="font-bold text-white text-sm">{c.fullName}</div>
                           <div className="text-slate-400 font-mono text-[11px] mt-0.5">
-                            Qrup: {c.groupNo} • Dil: {c.language.toUpperCase()}
+                            {t.groupLabel}: {c.groupNo} • {t.langLabel}: {c.language.toUpperCase()}
                           </div>
                         </td>
 
@@ -396,14 +500,14 @@ export default function AdminPage() {
                         {/* Recommended Subteam */}
                         <td className="py-3 px-4">
                           <span className="text-slate-200 font-medium">
-                            {c.evaluation?.recommendedSubTeam || c.subTeamPreference}
+                            {c.evaluation?.recommendedSubTeam || '—'}
                           </span>
                         </td>
 
                         {/* AI Copy Risk */}
                         <td className="py-3 px-4">
                           <span className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${riskBadge}`}>
-                            {aiRisk === 'high' ? 'Yüksək AI' : aiRisk === 'medium' ? 'Şübhəli' : 'Səmimi / Təbii'}
+                            {riskText}
                           </span>
                         </td>
 
@@ -421,7 +525,7 @@ export default function AdminPage() {
                               className="px-2.5 py-1 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium inline-flex items-center gap-1 transition-colors"
                             >
                               <Eye className="w-3.5 h-3.5" />
-                              <span>Bax</span>
+                              <span>{t.btnView}</span>
                             </button>
 
                             {/* WhatsApp link */}
@@ -431,7 +535,7 @@ export default function AdminPage() {
                                 target="_blank"
                                 rel="noreferrer"
                                 className="p-1 rounded-md bg-emerald-950/60 hover:bg-emerald-800 text-emerald-400 transition-colors"
-                                title="WhatsApp ilə əlaqə saxla"
+                                title="WhatsApp"
                               >
                                 <MessageCircle className="w-3.5 h-3.5" />
                               </a>
@@ -441,7 +545,7 @@ export default function AdminPage() {
                             <button
                               onClick={() => handleDelete(c.id, c.fullName)}
                               className="p-1 rounded-md bg-slate-800 hover:bg-red-950 hover:text-red-400 text-slate-400 transition-colors"
-                              title="Sil"
+                              title={t.btnDelete}
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -466,7 +570,7 @@ export default function AdminPage() {
               <div>
                 <div className="text-xl font-bold text-white">{selectedCandidate.fullName}</div>
                 <div className="text-xs text-slate-400 font-mono mt-1">
-                  Qrup: {selectedCandidate.groupNo} • Bölüm: {selectedCandidate.department.toUpperCase()} • Tel: {selectedCandidate.phone}
+                  {t.groupLabel}: {selectedCandidate.groupNo} • {t.thDept}: {selectedCandidate.department.toUpperCase()} • {t.thContact}: {selectedCandidate.phone}
                 </div>
               </div>
               <button
@@ -482,17 +586,17 @@ export default function AdminPage() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm">
                   <BrainCircuit className="w-4 h-4" />
-                  <span>Süni İntellekt Dəyərləndirmə Hesabatı</span>
+                  <span>{t.modalAiReport}</span>
                 </div>
                 <div className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-mono font-bold text-sm">
-                  Bal: {selectedCandidate.evaluation?.score ?? 0} / 100
+                  {t.modalScore}: {selectedCandidate.evaluation?.score ?? 0} / 100
                 </div>
               </div>
 
               {/* Executive Summary */}
               {selectedCandidate.evaluation?.executiveSummary && (
                 <div className="space-y-1.5">
-                  <div className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Xülasə:</div>
+                  <div className="text-xs font-semibold text-slate-300 uppercase tracking-wider">{t.modalSummary}</div>
                   <ul className="list-disc list-inside text-xs text-slate-300 space-y-1 pl-1">
                     {selectedCandidate.evaluation.executiveSummary.map((item, i) => (
                       <li key={i}>{item}</li>
@@ -504,11 +608,11 @@ export default function AdminPage() {
               {/* Strengths & Fit */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 text-xs border-t border-slate-800">
                 <div>
-                  <span className="font-semibold text-emerald-400">Tövsiyə Olunan Alt Ekip:</span>{' '}
-                  <span className="text-slate-200">{selectedCandidate.evaluation?.recommendedSubTeam}</span>
+                  <span className="font-semibold text-emerald-400">{t.modalRecommendedTeam}</span>{' '}
+                  <span className="text-slate-200">{selectedCandidate.evaluation?.recommendedSubTeam || '—'}</span>
                 </div>
                 <div>
-                  <span className="font-semibold text-amber-400">Kopya / AI Riski:</span>{' '}
+                  <span className="font-semibold text-amber-400">{t.modalAiRisk}</span>{' '}
                   <span className="text-slate-200 uppercase">{selectedCandidate.evaluation?.aiCopyLikelihood}</span>
                 </div>
               </div>
@@ -523,13 +627,13 @@ export default function AdminPage() {
             {/* Full Questions & Answers */}
             <div className="space-y-4">
               <div className="text-sm font-bold text-white uppercase tracking-wider">
-                Adayın Verdiyi Cavablar
+                {t.modalResponsesTitle}
               </div>
 
               {/* Q1 */}
               <div className="bg-[#090d16] border border-slate-800 rounded-lg p-4">
                 <div className="text-xs font-bold text-emerald-300 mb-1">
-                  1. Kriz & Fail-Safe Protokolu
+                  {t.modalQ1}
                 </div>
                 <div className="text-xs text-slate-300 whitespace-pre-wrap leading-relaxed">
                   {selectedCandidate.answers.q1_failsafe}
@@ -539,7 +643,7 @@ export default function AdminPage() {
               {/* Q2 */}
               <div className="bg-[#090d16] border border-slate-800 rounded-lg p-4">
                 <div className="text-xs font-bold text-emerald-300 mb-1">
-                  2. Öyrənmə İştahı & Təşəbbüskarlıq
+                  {t.modalQ2}
                 </div>
                 <div className="text-xs text-slate-300 whitespace-pre-wrap leading-relaxed">
                   {selectedCandidate.answers.q2_learning}
@@ -549,7 +653,7 @@ export default function AdminPage() {
               {/* Q3 */}
               <div className="bg-[#090d16] border border-slate-800 rounded-lg p-4">
                 <div className="text-xs font-bold text-emerald-300 mb-1">
-                  3. Komanda İşi & Böhran
+                  {t.modalQ3}
                 </div>
                 <div className="text-xs text-slate-300 whitespace-pre-wrap leading-relaxed">
                   {selectedCandidate.answers.q3_crisis}
@@ -559,7 +663,7 @@ export default function AdminPage() {
               {/* Q4 */}
               <div className="bg-[#090d16] border border-slate-800 rounded-lg p-4">
                 <div className="text-xs font-bold text-emerald-300 mb-1">
-                  4. Vaxt Ayırma & Atelye Motivasiyası
+                  {t.modalQ4}
                 </div>
                 <div className="text-xs text-slate-300 whitespace-pre-wrap leading-relaxed">
                   {selectedCandidate.answers.q4_commitment}
@@ -569,10 +673,10 @@ export default function AdminPage() {
               {/* Q5 */}
               <div className="bg-[#090d16] border border-slate-800 rounded-lg p-4">
                 <div className="text-xs font-bold text-emerald-300 mb-1">
-                  5. Əlavə Bacarıqlar
+                  {t.modalQ5}
                 </div>
                 <div className="text-xs text-slate-300 whitespace-pre-wrap leading-relaxed">
-                  {selectedCandidate.answers.q5_specialSkills || 'Qeyd edilməyib'}
+                  {selectedCandidate.answers.q5_specialSkills || t.modalNotSpecified}
                 </div>
               </div>
             </div>
@@ -586,14 +690,14 @@ export default function AdminPage() {
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition-colors"
               >
                 <MessageCircle className="w-4 h-4" />
-                <span>WhatsApp ilə Yaz</span>
+                <span>{t.modalWhatsapp}</span>
               </a>
 
               <button
                 onClick={() => setSelectedCandidate(null)}
                 className="px-5 py-2 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors"
               >
-                Bağla
+                {t.modalClose}
               </button>
             </div>
           </div>

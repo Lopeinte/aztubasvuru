@@ -34,3 +34,9 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
+export async function DELETE() {
+  const response = NextResponse.json({ success: true, message: 'Çıxış edildi' });
+  response.cookies.delete('admin_auth');
+  return response;
+}
