@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const format = searchParams.get('format');
 
-  const candidates = getAllCandidates();
+  const candidates = await getAllCandidates();
 
   if (format === 'csv') {
     const headers = [
@@ -89,7 +89,7 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Namizəd ID tələb olunur' }, { status: 400 });
     }
 
-    const success = deleteCandidate(id);
+    const success = await deleteCandidate(id);
     return NextResponse.json({ success });
   } catch (err) {
     return NextResponse.json({ success: false, error: 'Silmə xətası' }, { status: 500 });

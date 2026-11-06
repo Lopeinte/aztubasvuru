@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
     newCandidate.evaluation = evaluation;
 
     // Save candidate to secure storage
-    const saved = saveCandidate(newCandidate);
+    const saved = await saveCandidate(newCandidate);
     if (!saved) {
       throw new Error('Müraciəti yaddaşa yazmaq mümkün olmadı.');
     }
