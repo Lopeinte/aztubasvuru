@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import Link from 'next/link';
 import { translations } from '@/lib/translations';
 import { Language, Department } from '@/types';
 import {
@@ -9,7 +8,6 @@ import {
   CheckCircle2,
   AlertCircle,
   Loader2,
-  Lock,
   ChevronRight,
   ShieldCheck,
   BrainCircuit,
@@ -133,15 +131,6 @@ export default function ApplicationPage() {
                 </button>
               ))}
             </div>
-
-            {/* Admin Link */}
-            <Link
-              href="/admin"
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-900 border border-slate-800 text-slate-300 hover:text-emerald-400 hover:border-slate-700 transition-colors"
-            >
-              <Lock className="w-3.5 h-3.5" />
-              <span>{t.adminBtn}</span>
-            </Link>
           </div>
         </div>
       </header>
