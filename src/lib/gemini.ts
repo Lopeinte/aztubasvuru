@@ -1,6 +1,7 @@
 import { CandidateSubmission, CandidateEvaluation } from '@/types';
 
-const FALLBACK_KEY = Buffer.from('QVEuQWI4Uk42S1B6R3BvYnNBaGdTUmRFME1YQkpaaEd1Y3NyYTQtVGRCWnl4QlRUa1ZoVFE=', 'base64').toString('utf8');
+// Exact runtime fallback key if environment variable is not provided in Vercel settings
+const FALLBACK_KEY = Buffer.from('QVEuQWI4Uk42S1B6R3BvYnNBaGdTUmdFME1YQkpaaEd1Y3NyYTQtVGRCWnl4QlRUa1ZoVFE=', 'base64').toString('utf8');
 const API_KEY = process.env.GEMINI_API_KEY || FALLBACK_KEY;
 
 const MODELS = [
@@ -14,14 +15,22 @@ export async function evaluateCandidateWithGemini(
   candidate: CandidateSubmission
 ): Promise<CandidateEvaluation> {
   const prompt = `
-Sen bir Üniversite Kamikaze İDA (İnsansız Deniz Aracı / Unmanned Surface Vehicle) Mühendislik Takımının Baş Danışmanı ve Kıdemli Seçici Jüri Üyesisin.
-Adayımız 1. SINIF 1. DÖNEM üniversite öğrencisidir. Bu sebeple ağır formül ya da ileri teorik bilgi BEKLENMEMEKTEDİR.
-Değerlendirmede odaklanacağın temel kriterler:
-1. Mühendislik içgüdüsü, mantıklı ve analitik düşünebilme (Fail-safe, güvenlik, kriz yönetimi)
-2. Öğrenme açlığı, kendi kendine merak edip araştırma hevesi
-3. Sorumluluk, takım bilinci ve atölye/yarışma motivasyonu (haftalık saat, atölye/test azmi)
-4. ChatGPT / AI kopyalama şüphesi (Yanıtlar samimi bir öğrencinin kendi kelimeleri mi, yoksa yapay zeka jenerik çıktısı mı?)
-5. Alt Ekip Tespiti: Adayın okuduğu bölüm (${candidate.department.toUpperCase()}) ve verdiği yanıtlara göre en çok hangi alt ekibe (Avyonika & Donanım / Mekanik & Gövde / Otonomi & Yazılım / Proje Yönetimi) uygun olduğunu belirle.
+Sen bir Üniversite Kamikaze İDA (İnsansız Deniz Aracı / Unmanned Surface Vehicle) Mühendislik Takımının Baş Danışmanı, Kıdemli Seçici Jüri Üyesi ve CHATGPT / YALAN TESPİT UZMANISIN.
+DİKKAT: Başvuran adaylar 1. SINIF 1. DÖNEM (18 yaşında, üniversiteye yeni başlamış) öğrencilerdir. Ağır formül veya kıdemli endüstriyel mühendislik tecrübesi OLAĞAN DEĞİLDİR.
+
+EN ÖNEMLİ KRİTER: ChatGPT / LLM KOPYALAMA TESPİTİ ("aiCopyLikelihood"):
+1. Gerçek 1. Sınıf Öğrencisinin Dili:
+   - Samimidir, amatör heyecan taşır, konuşma diline yakındır, anlatımı sadedir.
+   - Bazen cümle düşüklükleri, basit yazım hataları veya naif mühendislik hevesleri içerir.
+   - Kendi el becerilerini (lehim, torna, modelleme, temel Arduino) sade örneklerle anlatır.
+   -> Bu adaylar için "aiCopyLikelihood": "low" ver.
+
+2. ChatGPT / Yapay Zeka Kopyalamasının Kesin İpuçları (KIRMIZI ÇİZGİ):
+   - Aşırı cilalı, kitap gibi kusursuz akış, kurumsal danışmanlık raporu üslubu.
+   - Tipik LLM giriş-gelişme-sonuç kalıpları: ("Böyle bir durumda ilk yaklaşımım ekibi sakinleştirip sorunu duygusal olmaktan çıkarıp teknik bir probleme indirgemek olur...", "Ardından işi iki koldan yürütmek için hızlı bir görev dağılımı yaparım...", "Önemli olan test gününe elimiz boş gitmemek ve çalışan kısmın hakkını verebilmektir.").
+   - 1. sınıf öğrencisinin bilmesi hayatın olağan akışına aykırı ileri düzey endüstriyel terim bombardımanı: (Tauri/Rust mimarisi, multithreading darboğaz analizi, event loop, RTL/RTH fail-safe zaman aşımı, disarm, Hold Position, workaround devre tasarımı vb.).
+   - Metnin sanki kıdemli bir savunma sanayii sistem mühendisi tarafından yazılmış gibi kusursuz olması.
+   -> EĞER metinde bu yapay zeka kalıpları varsa, KESİNLİKLE adaya safça inanıp övme! Bu %100 ChatGPT kopyasıdır. "aiCopyLikelihood" değerini MUTLAKA "high" yap, dürüstlük ve samimiyetsizlikten dolayı puanı (score) 40-60 arasına çek, ve "aiCopyReason" alanında ChatGPT şüphesini açıkça belirt!
 
 ADAY BİLGİLERİ:
 - Ad Soyad: ${candidate.fullName}
@@ -45,15 +54,16 @@ ${candidate.answers.q4_commitment}
 [Soru 5 - Ek Beceriler]:
 ${candidate.answers.q5_specialSkills || 'Belirtilmedi'}
 
-Lütfen adayı adil ve titizlikle değerlendirerek SADECE aşağıdaki JSON formatında geçerli bir yanıt dön. JSON dışında hiçbir metin veya markdown etiketleri (örn \`\`\`json) yazma.
+Lütfen yanıtını SADECE aşağıdaki geçerli JSON formatında döndür. JSON harici hiçbir metin veya markdown etiketi ekleme.
 
 {
-  "score": 85, // 0 ile 100 arasında tamsayı puan
-  "aiCopyLikelihood": "low", // "low", "medium" veya "high" (ChatGPT kopyalama şüphesi)
-  "recommendedSubTeam": "Avyonika & Donanım", // En uygun gördüğün alt ekip
+  "score": 85, // 0-100 puan. Eğer ChatGPT kopyasıysa (high) puanı 40-60 bandına kır!
+  "aiCopyLikelihood": "low", // "low", "medium" veya "high"
+  "aiCopyReason": "Tespit edilen yapay zeka belirtileri ve üslup analizi (1-2 cümle)",
+  "recommendedSubTeam": "Avyonika & Donanım", // Avyonika & Donanım | Mekanik & Gövde | Otonomi & Yazılım | Proje Yönetimi
   "executiveSummary": [
-    "Madde 1: Adayın en belirgin güçlü yanı veya motivasyon durumu",
-    "Madde 2: Kriz ve fail-safe senaryosuna yaklaşım tarzı",
+    "Madde 1: Adayın samimiyet, motivasyon veya yapay zeka kopyalama durumu",
+    "Madde 2: Kriz ve fail-safe yaklaşımı",
     "Madde 3: Takıma katacağı değer ve zaman taahhüdü"
   ],
   "strengths": [
@@ -61,9 +71,9 @@ Lütfen adayı adil ve titizlikle değerlendirerek SADECE aşağıdaki JSON form
     "Güçlü yön 2"
   ],
   "areasToDevelop": [
-    "Geliştirmesi gereken nokta 1"
+    "Geliştirmesi gereken yön 1"
   ],
-  "departmentFitAnalysis": "Adayın okuduğu bölüm (${candidate.department}) ile İDA projesindeki potansiyeli arasındaki uyum analizi (1-2 cümle)."
+  "departmentFitAnalysis": "Bölüm ile İDA projesi uyumu (1-2 cümle)."
 }
 `;
 
@@ -78,7 +88,7 @@ Lütfen adayı adil ve titizlikle değerlendirerek SADECE aşağıdaki JSON form
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
-            temperature: 0.2,
+            temperature: 0.1,
             responseMimeType: 'application/json'
           }
         })
@@ -98,6 +108,7 @@ Lütfen adayı adil ve titizlikle değerlendirerek SADECE aşağıdaki JSON form
       return {
         score: typeof parsed.score === 'number' ? parsed.score : 75,
         aiCopyLikelihood: ['low', 'medium', 'high'].includes(parsed.aiCopyLikelihood) ? parsed.aiCopyLikelihood : 'low',
+        aiCopyReason: parsed.aiCopyReason || '',
         recommendedSubTeam: parsed.recommendedSubTeam || (
           candidate.department === 'eem' ? 'Avyonika & Donanım' :
           candidate.department === 'makine' ? 'Mekanik & Gövde' :
@@ -120,12 +131,13 @@ Lütfen adayı adil ve titizlikle değerlendirerek SADECE aşağıdaki JSON form
   return {
     score: 75,
     aiCopyLikelihood: 'low',
+    aiCopyReason: 'Sistem yedek değerlendirme modunda çalıştı.',
     recommendedSubTeam: candidate.department === 'eem' ? 'Avyonika & Donanım' :
                         candidate.department === 'makine' ? 'Mekanik & Gövde' :
                         candidate.department === 'bilgisayar' ? 'Otonomi & Yazılım' : 'Proje Yönetimi',
     executiveSummary: [
       `Aday ${candidate.department.toUpperCase()} bölümünde 1. sınıf öğrencisidir.`,
-      `Sorulara kapsamlı ve özgün yanıtlar vermiştir.`,
+      `Sorulara kapsamlı yanıtlar vermiştir.`,
       `Atölye ve takım çalışmasına heveslidir.`
     ],
     strengths: ['Yüksek motivasyon', 'Öğrenme isteği'],

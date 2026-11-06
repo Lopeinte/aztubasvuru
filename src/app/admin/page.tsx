@@ -617,6 +617,12 @@ export default function AdminPage() {
                 </div>
               </div>
 
+              {selectedCandidate.evaluation?.aiCopyReason && (
+                <div className="p-2.5 rounded-lg bg-red-950/30 border border-red-500/30 text-red-200 text-xs">
+                  <span className="font-bold text-red-400">AI / Kopyalama Tespiti:</span> {selectedCandidate.evaluation.aiCopyReason}
+                </div>
+              )}
+
               {selectedCandidate.evaluation?.departmentFitAnalysis && (
                 <div className="text-xs text-slate-400 italic pt-1 border-t border-slate-800/60">
                   &ldquo;{selectedCandidate.evaluation.departmentFitAnalysis}&rdquo;

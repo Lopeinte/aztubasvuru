@@ -24,6 +24,7 @@ export interface CandidateSubmission {
 export interface CandidateEvaluation {
   score: number; // 0 - 100
   aiCopyLikelihood: 'low' | 'medium' | 'high'; // ChatGPT detection
+  aiCopyReason?: string;
   recommendedSubTeam: string;
   executiveSummary: string[];
   strengths: string[];
